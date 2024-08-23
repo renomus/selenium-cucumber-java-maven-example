@@ -10,6 +10,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -176,14 +177,13 @@ public class DriverUtil {
 			case "saucelab": driver = saucelabDriver(capability);
 			 					 break;
 			 					 
-			case "desktop": DesiredCapabilities capabilities = null;
-							capabilities = DesiredCapabilities.firefox();
-					        capabilities.setJavascriptEnabled(true);
-					        capabilities.setCapability("takesScreenshot", true);
-					        driver = chooseDriver(capabilities);
-					        driver.manage().timeouts().setScriptTimeout(DEFAULT_WAIT, TimeUnit.SECONDS);
-					        driver.manage().window().maximize();
-					        break;
+			case "desktop":
+				FirefoxOptions options = new FirefoxOptions();
+				options.setCapability("takesScreenshot", true);
+				driver = new FirefoxDriver(options);
+				driver.manage().timeouts().setScriptTimeout(DEFAULT_WAIT, TimeUnit.SECONDS);
+				driver.manage().window().maximize();
+				break;
 			
 			default : 	System.out.println("\nException : Invalid platform "+enviroment);
 						System.exit(0);
@@ -320,7 +320,7 @@ public class DriverUtil {
 					System.exit(0);
 				}
 				return driver;
-			case "chrome":
+			default:
 				final ChromeOptions chromeOptions = new ChromeOptions();
 				if (headless) {
 					chromeOptions.addArguments("--headless");
@@ -328,7 +328,7 @@ public class DriverUtil {
 				capabilities.setCapability(ChromeOptions.CAPABILITY, chromeOptions);
 				try
 				{
-					driver = new ChromeDriver(capabilities);
+					driver = new ChromeDriver(chromeOptions);
 					ErrorHandler handler = new ErrorHandler();
 					handler.setIncludeServerErrors(false);
 					//driver.setErrorHandler(handler);
@@ -337,29 +337,14 @@ public class DriverUtil {
 					System.exit(0);
 				}
 				return driver;
-			default:
-				FirefoxOptions options = new FirefoxOptions();
-				if (headless) {
-					options.addArguments("-headless", "-safe-mode");
-				}
-				capabilities.setCapability(FirefoxOptions.FIREFOX_OPTIONS, options);
-				try {
-					driver = new FirefoxDriver(capabilities);
-				}
-				catch(Exception e) {
-					System.out.println(e.getMessage());
-					System.exit(0);
-				}
-				return driver;
 		}
     }
 
-    public static WebElement waitAndGetElementByCssSelector(WebDriver driver, String selector,
-                                                            int seconds) {
-        By selection = By.cssSelector(selector);
-        return (new WebDriverWait(driver, seconds)).until( // ensure element is visible!
-                ExpectedConditions.visibilityOfElementLocated(selection));
-    }
+	public static WebElement waitAndGetElementByCssSelector(WebDriver driver, String selector, int seconds) {
+		By selection = By.cssSelector(selector);
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(seconds));
+		return wait.until(ExpectedConditions.visibilityOfElementLocated(selection));
+	}
 
 	public static void closeDriver() {
 		if (driver != null) {
